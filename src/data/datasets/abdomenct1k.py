@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 
 class abdomenCT1k(Dataset):
     """
-    Pytorch Dataset object for fs2_data.
+    Pytorch Dataset object for abdomenCT1k.
     Constructor Args:
         image_list (list of str): List of image paths.
         image2label_dict (dict): Dictionary mapping image path to label.
@@ -25,7 +25,7 @@ class abdomenCT1k(Dataset):
         ROOT='/scratche/users/sansiddh/abdomenCT-1k/',
         transform=None,
         phase="train",
-        task="feature-classification",
+        task="semantic-segmentation",
         feature=None,
         sample=None,
         fraction=1.0,
@@ -38,12 +38,10 @@ class abdomenCT1k(Dataset):
         self.transform = transform
 
         self.feature_code_to_name_mapping = {
-            0: "other",
-            1: "air cavity",
-            2: "sub pleural nodule",
-            3: "sub pulmonary nodule",
-            4: "pleural effusion",
-            5: "air space consolidation",
+            1 : 'liver',
+            2 : 'kidney',
+            3 : 'spleen',
+            4 : 'pancreas'
         }
 
         # Loads images list
@@ -79,7 +77,7 @@ class abdomenCT1k(Dataset):
                 sampling_object = getattr(abdomenCT1k, sample)
                 self.image_list = sampling_object(self)
 
-    def processImage(self, image_name, transform):
+    def load_and_process_image(self, image_name, transform):
         """
         Load and apply transformation to image.
         """
@@ -207,7 +205,7 @@ class abdomenCT1k(Dataset):
         return len(self.image_list)
 
     def __getitem__(self, idx):
-        image = self.processImage(self.image_list[idx], self.transform)
+        image = self.load_and_process_image(self.image_list[idx], self.transform)
         label = self.image2label_dict[self.image_list[idx]]
         image_path = self.image_list[idx]
 
