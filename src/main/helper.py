@@ -8,7 +8,6 @@ import torch
 import wandb
 import yaml
 from natsort import natsorted
-import segmentation_models_pytorch as smp
 
 import src.models as models_module
 import src.utils.metrics as metrics_module
@@ -182,7 +181,7 @@ def initialise_objs(cfg, device, phase):
     print("Initializing the model...")
     tick = time.time()
     # Assumption here that the models that will be called will be from the segmentation_models_pytorch module
-    model_class = getattr(smp, cfg["model"])
+    model_class = getattr(models_module, cfg["model"])
     model = model_class(**cfg["model_params"]).to(device)
     print("> Time to initialize model : {:.4f} sec".format(time.time() - tick))
 
