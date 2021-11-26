@@ -1,0 +1,72 @@
+# Weight decay with random augmentation
+
+checkpoints_dir: /scratche/users/sansiddh/abdomenCT-1k/Checkpoints
+split_version: v3
+num_classes: 2
+seed: 0
+cudnn_deterministic : True
+cudnn_benchmark : False
+disable_debug_apis: True
+
+model: Unet
+model_params:
+    encoder_name: resnet50
+    encoder_weights: imagenet
+    in_channels: 3
+    classes: 5
+
+data:
+    dataset: abdomenCT1k
+    dataset_params:
+        ROOT: /scratche/users/sansiddh/abdomenCT-1k/
+        split_version: null
+        num_classes: 5
+        sample : null
+        fraction: 1
+    # For googlenet and inception use [300, 300], else [224, 224]
+    imgsize: [224, 224]
+    dataloader_params:
+        batch_size : 256
+        shuffle: True
+        num_workers: 10
+        pin_memory: True
+    augmentations:
+        # Refer to dataaugs.yml for an exhaustive list of augmentations and their paramters.
+        main_augs:
+            RandomHorizontalFlip: {}
+            PhotometricDistort: {}
+            RandomAddMultiply: {}
+            RandomBlur: {}
+            RandomNoise: {}
+        misc_augs:
+            {} 
+
+train:
+    loss: DiceLoss
+    loss_params:
+        mode : multiclass
+        classes: 5
+    optimizer: Adam
+    optimizer_params:
+        lr : 1.0e-4
+        # weight_decay : 1.0e-4
+        # momentum: 0.9
+    use_amp: True
+    num_epochs : 50
+    
+augmentations:
+    main_augs:
+        RandomHorizontalFlip: {}
+        PhotometricDistort: {}
+        RandomAddMultiply: {}
+        RandomBlur: {}
+        RandomNoise: {}
+    misc_augs:
+        {}
+
+eval:
+    logging_metrics: 
+        label_metrics: [accuracy_score, confusion_matrix, f1_score,
+                      precision_score, recall_score]
+        score_metrics: [roc_auc_score, average_precision_score]
+    ckpt_metric: roc_auc_score
