@@ -8,10 +8,12 @@ import torch
 import wandb
 import yaml
 from natsort import natsorted
+import segmentation_models_pytorch as smp
 
 import src.models as models_module
 import src.utils.metrics as metrics_module
 import src.viz.eval as viz_eval_module
+import src.utils.losses as losses_module
 from src.data.datasets.main import create_dataloader
 
 
@@ -179,18 +181,18 @@ def get_dataloader(cfg, phase):
 def initialise_objs(cfg, device, phase):
     print("Initializing the model...")
     tick = time.time()
-    model_class = getattr(models_module, cfg["model"]["name"])
-    model = model_class(
-        num_classes=cfg["data"]["dataset_params"]["NUM_CLASSES"],
-        pretrained=cfg["model"]["pretrained"],
-    ).to(device)
+    # Assumption here that the models that will be called will be from the segmentation_models_pytorch module
+    model_class = getattr(smp, cfg["model"])
+    model = model_class(**cfg["model_params"]).to(device)
     print("> Time to initialize model : {:.4f} sec".format(time.time() - tick))
 
     # Create criterion object
-    criterion_class = getattr(torch.nn, cfg[phase]["criterion"])
-
-    weight = torch.tensor(cfg[phase]["criterion_params"]["weight"])
-    criterion = criterion_class(weight=weight).to(device)
+    criterion_class = getattr(losses_module, cfg[phase]["loss"])
+    if cfg[phase]["loss"] == 'CrossEntropyLoss':
+        weight = torch.tensor(cfg[phase]["loss_params"]["weight"])
+        criterion = criterion_class(weight=weight).to(device)
+    else:
+        criterion = criterion_class(**cfg[phase]["loss_params"]).to(device)
 
     if phase == "train":
         # Create optimiser object
