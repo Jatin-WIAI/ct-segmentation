@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import torchvision.models.segmentation as tvsegmentation
+from segmentation_models_pytorch import (FPN, PAN, DeepLabV3, DeepLabV3Plus,
+                                         Linknet, MAnet, PSPNet, Unet,
+                                         UnetPlusPlus)
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 
 
