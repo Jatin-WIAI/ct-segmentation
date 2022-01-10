@@ -4,6 +4,7 @@ import time
 from glob import glob
 
 import numpy as np
+import torch
 import tqdm
 from PIL import Image
 from torch.utils.data import Dataset
@@ -137,12 +138,13 @@ class abdomenCT1k(Dataset):
     def __getitem__(self, idx):
         image_path = self.image_list[idx]
         mask_path = image_path.replace('.jpg', '.npy').replace('Images', 'Masks')
-        image = self.load_and_process_image(image_path, self.transform)
+        # image = self.load_and_process_image(image_path, self.transform)
+        image = Image.open(image_path)
         mask = np.load(mask_path)
+        transformed = self.transform(image=image, mask=mask)
+        # print(self.transform)
+        image = transformed['image']
+        mask = transformed['mask']
 
-        target = {
-            'image': image,
-            'mask': mask
-        }
-
-        return target
+        print(image.shape)
+        return image, mask
