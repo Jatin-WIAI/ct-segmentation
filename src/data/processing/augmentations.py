@@ -4,8 +4,9 @@
 
 import sys
 
-import torchvision.transforms.functional as TF
+import torchvision.transforms.functional as F
 import torchvision.transforms as transforms
+import albumentations as A
 import numpy as np
 
 from imgaug import augmenters as iaa
@@ -52,6 +53,7 @@ class NpConvert:
         pass
 
     def __call__(self, img):
+        print(type(img))
         img = np.array(img)
         return img
 
@@ -78,7 +80,7 @@ class Brightness:
         self.brightness_factor = brightness_factor
 
     def __call__(self, x):
-        return TF.adjust_brightness(x, self.brightness_factor)
+        return F.adjust_brightness(x, self.brightness_factor)
 
 
 class Contrast:
@@ -86,7 +88,7 @@ class Contrast:
         self.contrast_factor = contrast_factor
 
     def __call__(self, x):
-        return TF.adjust_contrast(x, self.contrast_factor)
+        return F.adjust_contrast(x, self.contrast_factor)
 
 
 class AddElementWise:
@@ -233,8 +235,11 @@ class Augmentations():
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
         self.augs = Compose(augs)
 
-    def __call__(self, image):
-        return self.augs(image)
+    def __call__(self, image, mask=None):
+        if mask is not None:
+            return self.augs(image), self.augs(mask)
+        else:
+            return self.augs(image)
 
     def get_augmentations(self, cfg):
         augs = []
