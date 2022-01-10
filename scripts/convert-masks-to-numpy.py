@@ -1,3 +1,9 @@
+    """This is a file for processing the data in the abdomenCT-1k dataset. 
+    Essentially the masks are in a .nii.gz format, and there is 1 mask for the whole CT scan.
+    The mask is then processed and converted into a numpy array corresponding to each image in the CT scan.
+    The numpy array follows the standard semantic segmentation GT format - N*3*H*W
+    """
+
 import os
 import numpy as np
 import nibabel as nib
