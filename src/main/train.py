@@ -13,6 +13,9 @@ from pprint import pprint
 import numpy as np
 import torch
 
+import sys
+sys.path.append('../..')
+
 import src.utils.constants as constants
 from helper import (
     create_figures,
@@ -133,7 +136,7 @@ def main(args):
         )
 
         # VAL EPOCH
-        val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
+        val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels = epoch(
             cfg,
             model,
             val_dataloader,
