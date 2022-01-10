@@ -52,7 +52,7 @@ def setup_checkpoint_dir(cfg, args, phase):
     """
 
     root_dir = os.path.join(
-        cfg["checkpoints_dir"], cfg["model"]["name"], args.config_name
+        cfg["checkpoints_dir"], cfg["model"], args.config_name
     )
 
     ckpt_dir = os.path.join(root_dir, "checkpoints")
@@ -69,7 +69,7 @@ def load_checkpoints(cfg, args, model, optimizer, checkpoint_id="last"):
     print(f"> ***** Loading checkpoint from {args.config_name} *****")
 
     checkpoint_dir = os.path.join(
-        cfg["checkpoints_dir"], cfg["model"]["name"], args.config_name, "checkpoints"
+        cfg["checkpoints_dir"], cfg["model"], args.config_name, "checkpoints"
     )
 
     if checkpoint_id == "best":
@@ -113,13 +113,13 @@ def init_wandb(cfg, args, root_dir, model, phase):
     # Create Wandb run name
     if phase == "inference":
         wandb_run = "{}_{}_{}".format(
-            cfg["model"]["name"], args.config_name, phase)
+            cfg["model"], args.config_name, phase)
     else:
         if args.run:
             wandb_run = args.run
         else:
             wandb_run = "{}_{}_{}".format(
-                cfg["model"]["name"], args.config_name, phase)
+                cfg["model"], args.config_name, phase)
     # Initialize
     if phase == "train":
         wandb.init(
@@ -319,19 +319,20 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
     total = len(dataloader)
 
     tick = time.time()
-    for batchID, (images, labels, image_path) in enumerate(dataloader):
+    for batchID, (images, masks) in enumerate(dataloader):
         tock = time.time()
         labels = labels.to(device)
 
         with torch.cuda.amp.autocast(enabled=cfg[phase]["use_amp"]):
             with torch.set_grad_enabled(phase == "train"):
                 output = model(images.to(device))
+                import pdb; pdb.set_trace()
                 if (
-                    cfg["model"]["name"] == "inception"
-                    or cfg["model"]["name"] == "googlenet"
+                    cfg["model"] == "inception"
+                    or cfg["model"] == "googlenet"
                 ):
                     output = output.logits
-                loss = criterion(output, labels)
+                loss = criterion(output, masks)
 
         current = batchID + 1
         percent = current / float(total)
@@ -372,8 +373,6 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
                 optimizer.step()
         tick = time.time()
 
-        image_paths.extend(image_path)
-
     average_loss = np.mean(losses)
     average_time = np.mean(batch_times)
     gt_labels = np.array(gt_labels)
@@ -396,7 +395,7 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
         )
     )
 
-    return average_loss, metrics_dict, gt_labels, pred_scores, pred_labels, image_paths
+    return average_loss, metrics_dict, gt_labels, pred_scores, pred_labels
 
 
 def save_model_checkpoints(
