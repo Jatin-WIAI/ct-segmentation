@@ -1,12 +1,17 @@
+import copy
 import os
 import random
 import time
 from glob import glob
 
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
-import torch
+import pandas as pd
+import pylidc as pl
 import tqdm
-from PIL import Image
+from PIL import Image, ImageDraw
+from pydicom import dcmread
 from torch.utils.data import Dataset
 
 
@@ -22,27 +27,8 @@ class LIDC_IDRI(Dataset):
         Transformed image, label and image path through __getitem__() function.
     """
 
-    def __init__(
-        self,
-        ROOT='/scratche/users/sansiddh/abdomenCT-1k/',
-        transform=None,
-        phase="train",
-        sample=None,
-        fraction=1.0,
-        split_version="v3",
-        num_classes=2,
-        **kwargs,
-    ):
-
-        self.ROOT = ROOT
-        self.transform = transform
-
-        self.feature_code_to_name_mapping = {
-            1: 'liver',
-            2: 'kidney',
-            3: 'spleen',
-            4: 'pancreas'
-        }
+    def __init__(self, transform=None, phase="train", sample=None, fraction=1.0, 
+                 split_version="v3", task='semantic-segmentation', **kwargs):
 
         # Loads images list
         if split_version is not None:
@@ -52,16 +38,7 @@ class LIDC_IDRI(Dataset):
         else:
             self.splitfile_path = None
 
-        # Gets images from splitfile path. If splitfile path is None, loads all images
-        self.image_list = self.get_image_list(self.splitfile_path)
-
-        # Filter to a fraction of the data for dry-runs
-        if fraction != 1:
-            self.image_list = self.get_dataset_subset(fraction)
-        print("> No. total samples using: {}".format(len(self.image_list)))
-
-        # Number of classes for classification
-        self.num_classes = num_classes
+        
 
         if phase == "train":
             # TODO: Should this disabled by default?
@@ -70,14 +47,41 @@ class LIDC_IDRI(Dataset):
                 sampling_object = getattr(self, sample)
                 self.image_list = sampling_object(self)
 
-    def load_and_process_image(self, image_name, transform):
-        """
-        Load and apply transformation to image.
-        """
-        image = Image.open(image_name)
-        img = transform(image)
-        image.close()
-        return img
+    
+    def convert_dicom_to_image(self, dicom, return_type='numpy'):
+        window_center = int(dicom.WindowCenter)
+        window_width = int(dicom.WindowWidth)
+        hu_values = dicom.pixel_array
+
+        min_hu, max_hu = (window_center - window_width/2, 
+                          window_center + window_width/2)
+        
+        img = copy.copy(hu_values)
+        img[img > max_hu] = max_hu
+        img[img < min_hu] = min_hu
+        img = (img - min_hu)/(max_hu - min_hu)
+        
+        img = (img*255).astype(np.int32)
+        img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
+
+        if return_type == 'PIL':
+            img = img.astype(np.uint8)
+            return Image.fromarray(img)
+        elif return_type == 'numpy':
+            return img
+        else:
+            raise ValueError('`return_type` can be one of PIL or numpy')
+
+    def create_mask_from_contour(self, contour, width=512, height=512):
+        coords = contour.to_matrix(include_k=False)
+        coords = np.flip(coords, axis=1)
+        dummy_img = Image.new('L', (width, height), 0)
+        ImageDraw.Draw(dummy_img).polygon(list(map(tuple, coords)), outline=1, fill=1)
+        mask = np.array(dummy_img)
+
+        return mask
+
+
 
     def get_image_list(self, splitfile_path):
         """Read images from splits file and shuffle
