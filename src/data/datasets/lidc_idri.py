@@ -20,7 +20,7 @@ class LIDC_IDRI(Dataset):
     """
     Pytorch Dataset object for abdomenCT1k.
     Constructor Args:
-        image_list (list of str): List of image paths.
+        image_mask_mapping (list of str): List of image paths.
         image2label_dict (dict): Dictionary mapping image path to label.
         transform (Pytorch transform object): Transformation to apply on each image.
         phase (str): train/val/test split for data.
@@ -55,7 +55,7 @@ class LIDC_IDRI(Dataset):
         # if phase == "train":
         #     if sample is not None:
         #         sampling_object = getattr(self, sample)
-        #         self.image_list = sampling_object(self)
+        #         self.image_mask_mapping = sampling_object(self)
         
         # TODO : Get fractioning working for pandas dataframes 
 
@@ -198,14 +198,14 @@ class LIDC_IDRI(Dataset):
     #     return upsampled_image_list
 
     def get_dataset_subset(self, fraction):
-        num_samples = int(fraction * len(self.image_list))
-        image_list = random.sample(self.image_list, num_samples)
+        num_samples = int(fraction * len(self.image_mask_mapping))
+        image_mask_mapping = random.sample(self.image_mask_mapping, num_samples)
 
-        print("> No. total samples using: {}".format(len(image_list)))
-        return image_list
+        print("> No. total samples using: {}".format(len(image_mask_mapping)))
+        return image_mask_mapping
 
     def __len__(self):
-        return len(self.image_list)
+        return len(self.image_mask_mapping)
 
     def __getitem__(self, idx):
         image_path = self.image_mask_mapping[idx, 'image']
