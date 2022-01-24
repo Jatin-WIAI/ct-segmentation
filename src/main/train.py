@@ -5,19 +5,26 @@
 # - Do not run the code with existing versions. This might
 #   overwrite the exisiting checkpoints.
 
+# Usage:
+# PYTHONPATH='/home/users/arsh/ultrasound' \
+# CUDA_VISIBLE_DEVICES=1 \
+# taskset --cpu-list 10-19 \
+# python src/main/train.py --config va5.yml \
+# [--wandb] [--resume]
+
 import argparse
 import os
+import sys
 import time
 from pprint import pprint
 
 import numpy as np
 import torch
 
-import sys
-sys.path.append('../..')
+sys.path.append('../../')
 
 import src.utils.constants as constants
-from helper import (
+from src.main.helper import (
     create_figures,
     epoch,
     get_dataloader,
@@ -31,12 +38,13 @@ from helper import (
     setup_misc_params,
 )
 
+sys.path.append("../../")
+
 
 def main(args):
     # Setting up necessary parameters
     print("Setting up parameters...")
-    device = torch.device(
-        "cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     scaler = torch.cuda.amp.GradScaler()
 
     # Load config
@@ -56,7 +64,7 @@ def main(args):
     val_dataloader = get_dataloader(cfg, phase="val")
 
     # Initializing model, loss function and optimizers
-    model, criterion, optimizer = initialise_objs(cfg, device, phase="train")
+    model, criterion, optimizer, scheduler = initialise_objs(cfg, device, phase="train")
 
     # If resume flag, load the checkpoints
     if args.resume:
@@ -98,15 +106,13 @@ def main(args):
         log_to_wandb(
             {}, "train", {}, {}, val_metrics, val_loss, epochID=0,
         )
-    print("> Time to log to W&B : {:.4f} sec".format(
-        time.time() - log_start_time))
+    print("> Time to log to W&B : {:.4f} sec".format(time.time() - log_start_time))
 
     # Run training
     for epochID in range(start_epoch, start_epoch + cfg["train"]["num_epochs"]):
         print("-" * 50)
         print(
-            "Training for epoch {}/{}".format(epochID + 1,
-                                              cfg["train"]["num_epochs"])
+            "Training for epoch {}/{}".format(epochID + 1, cfg["train"]["num_epochs"])
         )
 
         # TRAIN EPOCH
@@ -136,7 +142,7 @@ def main(args):
         )
 
         # VAL EPOCH
-        val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels = epoch(
+        val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
             cfg,
             model,
             val_dataloader,
@@ -152,13 +158,15 @@ def main(args):
                 val_end_time - train_end_time
             )
         )
-        print("> Time to run full epoch : {:.4f} sec".format(
-            val_end_time - start_time))
+        print("> Time to run full epoch : {:.4f} sec".format(val_end_time - start_time))
+
+        scheduler.step()
 
         # LOGGING AND PLOTTING
-        figures_dict = create_figures(
-            cfg, "train", train_gt_labels, train_scores, val_gt_labels, val_scores
-        )
+        labels_dict = train_dataloader.dataset.name_to_feature_code_mapping
+        labels_dict = {v: k for k, v in labels_dict.items()}
+        figures_dict = create_figures(cfg, "train", train_gt_labels, train_scores, 
+                                      val_gt_labels, val_scores, labels_dict=labels_dict)
 
         start_time = time.time()
         pprint(train_metrics)
@@ -173,8 +181,7 @@ def main(args):
                 val_loss,
                 epochID=epochID + 1,
             )
-        print("> Time to log to W&B : {:.4f} sec".format(
-            time.time() - start_time))
+        print("> Time to log to W&B : {:.4f} sec".format(time.time() - start_time))
 
         # SAVE CHECKPOINTS
         save_model_checkpoints(
@@ -200,11 +207,9 @@ def parse_args():
         default="v16.yml",
         help="Config version to use for training",
     )
-    parser.add_argument("--wandb", action="store_true",
-                        help="Use Wandb or not")
+    parser.add_argument("--wandb", action="store_true", help="Use Wandb or not")
     parser.add_argument("--run", type=str, help="Wandb experiment name")
-    parser.add_argument("--resume", action="store_true",
-                        help="Resume experiment")
+    parser.add_argument("--resume", action="store_true", help="Resume experiment")
     parser.add_argument(
         "--id", type=str, help="Wandb experiment ID to resume experiment"
     )
