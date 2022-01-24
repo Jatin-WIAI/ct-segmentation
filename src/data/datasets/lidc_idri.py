@@ -1,15 +1,13 @@
 import copy
 import os
+import pickle
 import random
-import time
 from glob import glob
 
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pylidc as pl
-import tqdm
+from tqdm import tqdm
 from PIL import Image, ImageDraw
 from pydicom import dcmread
 from scipy.sparse import csc_matrix
@@ -18,7 +16,7 @@ from torch.utils.data import Dataset
 
 class LIDC_IDRI(Dataset):
     """
-    Pytorch Dataset object for abdomenCT1k.
+    Pytorch Dataset object for LIDC_IDRI
     Constructor Args:
         image_mask_mapping (list of str): List of image paths.
         image2label_dict (dict): Dictionary mapping image path to label.
@@ -49,7 +47,7 @@ class LIDC_IDRI(Dataset):
         self.sop_id_to_fname_dict = self.create_imagename_sop_id_mapping()
 
         # Get dataframe containing all masks and all imagepaths (main func)
-        self.image_mask_mapping = self.create_image_masks_mapping()
+        self.image_mask_mapping, self.image_attr_mapping = self.create_image_masks_mapping()
 
         # Perform class wise upsampling/downsampling based on config
         # if phase == "train":
@@ -95,12 +93,25 @@ class LIDC_IDRI(Dataset):
 
     def get_masks_for_single_sample(self, scan):
         images = scan.load_all_dicom_images()
-        df_images_masks = pd.DataFrame(columns=['image', 'mask'])
+        df_masks = pd.DataFrame(columns=['image', 'mask'])
+        df_attrs = pd.DataFrame(columns=['image'])
+        attributes = ['subtlety', 'internalStructure', 'calcification', 'sphericity', 
+                      'margin', 'lobulation', 'spiculation', 'texture', 'malignancy']
         for i, image in enumerate(images):
             fname = self.sop_id_to_fname_dict[image.SOPInstanceUID]
-            df_images_masks.loc[i, 'image'] = fname
-            df_images_masks.loc[i, 'mask'] = csc_matrix(
+            df_masks.loc[i, 'image'] = fname
+            # Create empty mask for all images first
+            df_masks.loc[i, 'mask'] = csc_matrix(
                 np.zeros(image.pixel_array.shape))
+        
+        # Create dummy attribute entries for all attributes
+        for i, image in enumerate(images):
+            fname = self.sop_id_to_fname_dict[image.SOPInstanceUID]
+            df_attrs.loc[i, 'image'] = fname
+            for attr in attributes:
+                df_attrs.loc[i, attr] = -1
+                title_attr = 'InternalStructure' if attr == 'internalStructure' else attr.title()
+                df_attrs.loc[i, title_attr] = ""
 
         all_annotations = scan.annotations
         for annotation in all_annotations:
@@ -112,24 +123,55 @@ class LIDC_IDRI(Dataset):
                     contour, image.pixel_array.shape)
                 sparse_mask = csc_matrix(mask)
 
-                idx = df_images_masks[df_images_masks['image'] == fname].index[0]
-                org_mask = df_images_masks.loc[idx, 'mask']
+                idx = df_masks[df_masks['image'] == fname].index[0]
+                org_mask = df_masks.loc[idx, 'mask']
+                # Replace empty mask with generated mask if empty masks exists
+                # Else create new row entry with given mask
                 if len(org_mask.nonzero()[0]) == 0:
-                    df_images_masks.loc[idx, 'mask'] = sparse_mask
+                    df_masks.loc[idx, 'mask'] = sparse_mask
+                    for attr in attributes:
+                        df_attrs.loc[idx, attr] = getattr(
+                            annotation, attr)
+                        title_attr = 'InternalStructure' if attr == 'internalStructure' else attr.title()
+                        df_attrs.loc[idx, title_attr] = getattr(
+                            annotation, title_attr)
                 else:
-                    new_idx = len(df_images_masks)
-                    df_images_masks.loc[new_idx, 'image'] = fname
-                    df_images_masks.loc[new_idx, 'mask'] = sparse_mask
+                    new_idx = len(df_masks)
+                    df_masks.loc[new_idx, 'image'] = fname
+                    df_attrs.loc[new_idx, 'image'] = fname
+                    df_masks.loc[new_idx, 'mask'] = sparse_mask
+                    for attr in attributes:
+                        df_attrs.loc[new_idx, attr] = getattr(
+                            annotation, attr)
+                        title_attr = 'InternalStructure' if attr == 'internalStructure' else attr.title()
+                        df_attrs.loc[new_idx, title_attr] = getattr(
+                            annotation, title_attr)
 
-        return df_images_masks
+        return df_masks, df_attrs
 
     def create_image_masks_mapping(self):
-        df_master = self.get_masks_for_single_sample(self.all_scans[0])
-        for scan in self.all_scans[1:]:
-            df = self.get_masks_for_single_sample(scan)
-            df_master = pd.concat([df_master, df], ignore_index=True)
+        # try:
+        #     with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'rb') as f:
+        #         df_master_masks = pickle.load(f)
+        #     with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'rb') as f:
+        #             df_master_attrs = pickle.load(f)
+        # except Exception:
+        df_master_masks, df_master_attrs = self.get_masks_for_single_sample(
+            self.all_scans[0])
+        for scan in tqdm(self.all_scans[1:], desc="Total Number of LIDC Scans"):
+            df_masks, df_attrs = self.get_masks_for_single_sample(scan)
+            df_master_masks = pd.concat([df_master_masks, df_masks], ignore_index=True)
+            df_master_attrs = pd.concat([df_master_attrs, df_attrs], ignore_index=True)
 
-        return df_master
+        import pdb; pdb.set_trace()
+        
+        with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'wb') as f:
+            pickle.dump(df_master_masks, f)
+        
+        with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'wb') as f:
+            pickle.dump(df_master_attrs, f)
+
+        return df_master_masks, df_master_attrs
 
 
     def create_imagename_sop_id_mapping(self):
