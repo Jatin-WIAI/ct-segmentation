@@ -156,26 +156,24 @@ class LIDC_IDRI(Dataset):
         return df_masks, df_attrs
 
     def create_image_masks_mapping(self):
-        # try:
-        #     with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'rb') as f:
-        #         df_master_masks = pickle.load(f)
-        #     with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'rb') as f:
-        #             df_master_attrs = pickle.load(f)
-        # except Exception:
-        df_master_masks, df_master_attrs = self.get_masks_for_single_sample(
-            self.all_scans[0])
-        for scan in tqdm(self.all_scans[1:], desc="Total Number of LIDC Scans"):
-            df_masks, df_attrs = self.get_masks_for_single_sample(scan)
-            df_master_masks = pd.concat([df_master_masks, df_masks], ignore_index=True)
-            df_master_attrs = pd.concat([df_master_attrs, df_attrs], ignore_index=True)
-
-        import pdb; pdb.set_trace()
-        
-        with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'wb') as f:
-            pickle.dump(df_master_masks, f)
-        
-        with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'wb') as f:
-            pickle.dump(df_master_attrs, f)
+        try:
+            with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'rb') as f:
+                df_master_masks = pickle.load(f)
+            with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'rb') as f:
+                    df_master_attrs = pickle.load(f)
+        except Exception:
+            df_master_masks, df_master_attrs = self.get_masks_for_single_sample(
+                self.all_scans[0])
+            for scan in tqdm(self.all_scans[1:], desc="Total Number of LIDC Scans"):
+                df_masks, df_attrs = self.get_masks_for_single_sample(scan)
+                df_master_masks = pd.concat([df_master_masks, df_masks], ignore_index=True)
+                df_master_attrs = pd.concat([df_master_attrs, df_attrs], ignore_index=True)
+            
+            with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'wb') as f:
+                pickle.dump(df_master_masks, f)
+            
+            with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'wb') as f:
+                pickle.dump(df_master_attrs, f)
 
         return df_master_masks, df_master_attrs
 
