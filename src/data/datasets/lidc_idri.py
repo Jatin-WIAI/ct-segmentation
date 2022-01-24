@@ -133,8 +133,11 @@ class LIDC_IDRI(Dataset):
                         df_attrs.loc[idx, attr] = getattr(
                             annotation, attr)
                         title_attr = 'InternalStructure' if attr == 'internalStructure' else attr.title()
-                        df_attrs.loc[idx, title_attr] = getattr(
-                            annotation, title_attr)
+                        if (attr == 'internalStructure') & (df_attrs.loc[idx, attr] not in range(1,5)):
+                            pass
+                        else:
+                            df_attrs.loc[idx, title_attr] = getattr(
+                                annotation, title_attr)
                 else:
                     new_idx = len(df_masks)
                     df_masks.loc[new_idx, 'image'] = fname
@@ -144,8 +147,11 @@ class LIDC_IDRI(Dataset):
                         df_attrs.loc[new_idx, attr] = getattr(
                             annotation, attr)
                         title_attr = 'InternalStructure' if attr == 'internalStructure' else attr.title()
-                        df_attrs.loc[new_idx, title_attr] = getattr(
-                            annotation, title_attr)
+                        if (attr == 'internalStructure') & (df_attrs.loc[new_idx, attr] not in range(1, 5)):
+                            pass
+                        else:
+                            df_attrs.loc[new_idx, title_attr] = getattr(
+                                annotation, title_attr)
 
         return df_masks, df_attrs
 
