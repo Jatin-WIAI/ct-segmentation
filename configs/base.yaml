@@ -1,6 +1,6 @@
 # Weight decay with random augmentation
 
-checkpoints_dir: /scratche/users/sansiddh/abdomenCT-1k/Checkpoints
+checkpoints_dir: /scratche/users/sansiddh/LIDC_IDRI/checkpoints
 split_version: v3
 num_classes: 2
 seed: 0
@@ -13,20 +13,18 @@ model_params:
     encoder_name: resnet50
     encoder_weights: imagenet
     in_channels: 3
-    classes: 5
+    classes: 2
 
 data:
-    dataset: abdomenCT1k
+    dataset: LIDC_IDRI
     dataset_params:
-        ROOT: /scratche/users/sansiddh/abdomenCT-1k/
         split_version: null
-        num_classes: 5
         sample : null
         fraction: 1
     # For googlenet and inception use [300, 300], else [224, 224]
     imgsize: [224, 224]
     dataloader_params:
-        batch_size : 256
+        batch_size : 64
         shuffle: True
         num_workers: 10
         pin_memory: True
