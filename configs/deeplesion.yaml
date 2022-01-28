@@ -31,14 +31,33 @@ data:
         pin_memory: True
     augmentations:
         # Refer to dataaugs.yml for an exhaustive list of augmentations and their paramters.
-        main_augs:
-            RandomHorizontalFlip: {}
-            PhotometricDistort: {}
-            RandomAddMultiply: {}
-            RandomBlur: {}
-            RandomNoise: {}
-        misc_augs:
-            {} 
+        augs:
+            HorizontalFlip: 
+                p: 0.5
+            CropAndPad:
+                percent: [-0.3, 0.3]
+                p: 0.8
+            RandomResizedCrop: 
+                height: 224
+                width: 224
+                p: 0.5
+            GaussianBlur:
+                p: 0.5
+            GaussNoise:
+                p: 0.5
+            ElasticTransform:
+                p: 0.2
+            Rotate:
+                p: 0.5
+        normalization:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+        bbox_aug: False
+        bbox_aug_params:
+            format: coco
+            min_area: 1024
+            min_visibility: 0.1
+            label_fields: [class_labels] 
 
 train:
     loss: DiceLoss
