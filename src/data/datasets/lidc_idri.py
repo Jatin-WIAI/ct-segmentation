@@ -160,7 +160,7 @@ class LIDC_IDRI(Dataset):
             with open('/scratche/users/sansiddh/LIDC-IDRI/processed_masks.pkl', 'rb') as f:
                 df_master_masks = pickle.load(f)
             with open('/scratche/users/sansiddh/LIDC-IDRI/processed_attrs.pkl', 'rb') as f:
-                    df_master_attrs = pickle.load(f)
+                df_master_attrs = pickle.load(f)
         except Exception:
             df_master_masks, df_master_attrs = self.get_masks_for_single_sample(
                 self.all_scans[0])
@@ -196,6 +196,8 @@ class LIDC_IDRI(Dataset):
 
         return sop_id_to_fname_dict
 
+    def create_split(self):
+        pass
 
     def get_list_of_scans(self, splitfile_path):
         """Read images from splits file and shuffle
