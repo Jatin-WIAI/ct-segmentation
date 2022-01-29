@@ -12,6 +12,8 @@ import yaml
 
 import src.models as models_module
 import src.utils.metrics as metrics_module
+import src.utils.losses as losses_module
+import src.utils.schedulers as schedulers_module
 import src.viz.eval as viz_eval_module
 from natsort import natsorted
 from src.data.datasets.main import create_dataloader
@@ -180,17 +182,17 @@ def initialise_objs(cfg, device, phase):
     print("Initializing the model...")
     tick = time.time()
     model_class = getattr(models_module, cfg["model"]["name"])
-    model = model_class(
-        num_classes=cfg["data"]["dataset_params"]["NUM_CLASSES"],
-        pretrained=cfg["model"]["pretrained"],
-    ).to(device)
+    model = model_class(**cfg["model_params"]).to(device)
     print("> Time to initialize model : {:.4f} sec".format(time.time() - tick))
 
     # Create criterion object
-    criterion_class = getattr(torch.nn, cfg[phase]["criterion"])
+    criterion_class = getattr(losses_module, cfg[phase]["loss"])
 
-    weight = torch.tensor(cfg[phase]["criterion_params"]["weight"])
-    criterion = criterion_class(pos_weight=weight).to(device)
+    if 'weight' in cfg[phase]["loss_params"].keys():
+        cfg[phase]["loss_params"]["weight"] = torch.tensor(
+            cfg[phase]["loss_params"]["weight"])
+    
+    criterion = criterion_class(**cfg[phase]["loss_params"]).to(device)
 
     if phase == "train":
         # Create optimiser object
@@ -198,7 +200,7 @@ def initialise_objs(cfg, device, phase):
         optimizer = optimizer_class(
             model.parameters(), **cfg[phase]["optimizer_params"]
         )
-        scheduler_class = getattr(torch.optim.lr_scheduler, cfg[phase]["lr_scheduler"])
+        scheduler_class = getattr(schedulers_module, cfg[phase]["lr_scheduler"])
         scheduler = scheduler_class(optimizer, **cfg[phase]["lr_scheduler_params"])
     else:
         optimizer = None
@@ -389,7 +391,8 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
     total = len(dataloader)
 
     tick = time.time()
-    for batchID, (images, labels, image_path) in enumerate(dataloader):
+    for batchID, (images, masks) in enumerate(dataloader):
+        import pdb; pdb.set_trace()
         tock = time.time()
         labels = labels.float()
         labels = labels.to(device)
