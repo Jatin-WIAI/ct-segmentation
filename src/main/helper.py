@@ -392,10 +392,8 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
 
     tick = time.time()
     for batchID, (images, masks) in enumerate(dataloader):
-        import pdb; pdb.set_trace()
         tock = time.time()
-        labels = labels.float()
-        labels = labels.to(device)
+        masks = masks.to(device)
 
         with torch.cuda.amp.autocast(enabled=cfg[phase]["use_amp"]):
             with torch.set_grad_enabled(phase == "train"):
@@ -405,7 +403,7 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
                     or cfg["model"]["name"] == "googlenet"
                 ):
                     output = output.logits
-                loss = criterion(output, labels)
+                loss = criterion(output, masks)
 
         current = batchID + 1
         percent = current / float(total)
