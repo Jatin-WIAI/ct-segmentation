@@ -1,9 +1,9 @@
 import time
 
-from torch.utils.data import DataLoader
-from src.data.processing.augmentations import Augmentations
-
 import src.data.datasets as datasets_module
+from src.data.processing.augmentations import Augmentations
+from src.utils.misc import collate_fn_obj_detection, collate_fn_semantic_seg
+from torch.utils.data import DataLoader
 
 
 def create_dataloader(data_cfg, phase):
@@ -21,7 +21,8 @@ def create_dataloader(data_cfg, phase):
                             phase=phase, **data_cfg['dataset_params'])
     end = time.time()
 
-    dataloader = DataLoader(dataset=dataset, **data_cfg['dataloader_params'])
+    dataloader = DataLoader(dataset=dataset, collate_fn=collate_fn_semantic_seg,
+                            **data_cfg['dataloader_params'])
 
     print('> Time to create dataset object : {:.4f} sec'.format(end-start))
     print('> Time to create dataloader object : {:.4f} sec'.format(
