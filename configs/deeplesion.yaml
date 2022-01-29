@@ -69,8 +69,14 @@ train:
         lr : 1.0e-4
         # weight_decay : 1.0e-4
         # momentum: 0.9
+    lr_scheduler: StepLR
+    lr_scheduler_params:
+        step_size: 5
+        gamma: 0.5
+        verbose: True
     use_amp: True
     num_epochs : 50
+    resume_checkpoint: 1
     
 augmentations:
     main_augs:
