@@ -1,3 +1,4 @@
+import cv2
 import random
 from glob import glob
 
@@ -52,9 +53,6 @@ class DeepLesion(Dataset):
 
         # Get list of Scan objects based on splitfile
         self.image_paths = self.get_list_of_images(self.splitfile_path)
-
-        # Get dataframe containing all masks and all imagepaths (main func)
-        self.image_mask_mapping = self.create_masks(self.image_paths)
 
         # Perform class wise upsampling/downsampling based on config
         # if phase == "train":
@@ -138,12 +136,13 @@ class DeepLesion(Dataset):
 
     def __getitem__(self, idx):
         imagepath = self.image_paths[idx]
-        image = Image.open(imagepath)
+        image = cv2.imread(imagepath)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = self.create_mask(imagepath)
 
-        transformed = self.transform(image=image, mask=mask)
-
-        image = transformed['image']
-        mask = transformed['mask']
+        if self.transform is not None:
+            transformed = self.transform(image=image, mask=mask)
+            image = transformed['image']
+            mask = transformed['mask']
 
         return image, mask
