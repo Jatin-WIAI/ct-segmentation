@@ -1,3 +1,7 @@
+from monai.losses import (ContrastiveLoss, DiceCELoss, DiceFocalLoss,
+                          GeneralizedDiceLoss, GeneralizedWassersteinDiceLoss,
+                          MaskedDiceLoss)
+# Read more here - https://docs.monai.io/en/stable/losses.html
 from segmentation_models_pytorch.losses import (DiceLoss, FocalLoss,
                                                 JaccardLoss, LovaszLoss,
                                                 MCCLoss, SoftBCEWithLogitsLoss,
