@@ -14,7 +14,7 @@ model_params:
     encoder_name: resnet50
     encoder_weights: imagenet
     in_channels: 3
-    classes: 2
+    classes: 1
 
 data:
     dataset: DeepLesion
@@ -62,8 +62,8 @@ data:
 train:
     loss: DiceLoss
     loss_params:
-        mode : multiclass
-        classes: 5
+        mode : binary
+        # classes: 1
     optimizer: Adam
     optimizer_params:
         lr : 1.0e-4
@@ -77,16 +77,12 @@ train:
     use_amp: True
     num_epochs : 50
     resume_checkpoint: 1
-    
-augmentations:
-    main_augs:
-        RandomHorizontalFlip: {}
-        PhotometricDistort: {}
-        RandomAddMultiply: {}
-        RandomBlur: {}
-        RandomNoise: {}
-    misc_augs:
-        {}
+
+inference:
+    loss: DiceLoss
+    loss_params:
+        mode : binary
+    use_amp: True
 
 eval:
     logging_metrics: 
