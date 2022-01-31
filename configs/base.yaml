@@ -90,7 +90,10 @@ wandb:
     entity: sansiddhjain
 
 eval:
-    logging_metrics: 
+    logging_metrics:
+        label_metrics: [accuracy_score, confusion_matrix, f1_score,
+                        precision_score, recall_score]
+        score_metrics: [roc_auc_score, average_precision_score]
         mask_metrics: [accuracy_score, confusion_matrix, f1_score,
                        precision_score, recall_score]
     ckpt_metric: roc_auc_score
