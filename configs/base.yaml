@@ -1,34 +1,44 @@
 checkpoints_dir: /scratche/users/sansiddh/LIDC-IDRI/checkpoints
+# Please make sure that the checkpoints directory is in the same ROOT folder as where the data is.
 seed: 0
 cudnn_deterministic : True
 cudnn_benchmark : False
 disable_debug_apis: True
 
 task_type: semantic-segmentation
+# Task type can be : "binary-classification", "multiclass-classification", "multilabel-classification"
+# and "semantic-segmentation". Will add support for "object-detection" soon. 
+# Task type must be specified as the pipeline changed acording to that
 
 model: 
-    name: Unet
+    name: Unet # Name of the model
+    # List of supported models can be found in src/models/__init__.py
     params:
+    # Model params.
         encoder_name: resnet50
         encoder_weights: imagenet
         in_channels: 3
         classes: 1
 
 data:
-    dataset: LIDC-IDRI
+    dataset: LIDC_IDRI
+    # Name of the dataset class. List of supported datasets can be found in src/data/datasets/__init__.py
     dataset_params:
+    # Params of dataset
         split_version: null
         sample : null
         fraction: 1
     # For googlenet and inception use [300, 300], else [224, 224]
     imgsize: [224, 224]
     dataloader_params:
+    # Dataloader params
         batch_size : 64
         shuffle: True
         num_workers: 10
         pin_memory: True
     augmentations:
-        # Refer to dataaugs.yml for an exhaustive list of augmentations and their paramters.
+        # We currently use albumentations for augmentations. Given augmentations are a subset of supported augmentations.
+        # For every augmentation p (probability) parameter must be provided
         augs:
             HorizontalFlip: 
                 p: 0.5
@@ -50,7 +60,7 @@ data:
         normalization:
             mean: [0.485, 0.456, 0.406]
             std: [0.229, 0.224, 0.225]
-        bbox_aug: False
+        bbox_aug: False # If this is true, the bbox params are used to augment the bbox annotations as well.
         bbox_aug_params:
             format: coco
             min_area: 1024
@@ -59,15 +69,18 @@ data:
 
 train:
     loss: DiceLoss
+    # List of supported loss functions can be found in src/utils/losses.py
     loss_params:
         mode : binary
         # classes: 1
     optimizer: Adam
+    # List of supported loss functions can be found in src/utils/optimizers.py
     optimizer_params:
         lr : 1.0e-4
         # weight_decay : 1.0e-4
         # momentum: 0.9
     lr_scheduler: StepLR
+    # List of supported LR schedulers can be found in src/utils/schedulers.py
     lr_scheduler_params:
         step_size: 5
         gamma: 0.5
@@ -77,17 +90,24 @@ train:
     resume_checkpoint: 1
 
 inference:
+# These params must be the same as the corresponding train params
     loss: DiceLoss
     loss_params:
         mode : binary
     use_amp: True
 
 wandb:
-    name: null
-    project: lung-ct
-    entity: sansiddhjain
+    name: null # Name of W&B run
+    project: lung-ct # W&B project name
+    entity: sansiddhjain # W&B team name
 
 eval:
+# List of metrics. There are 2 types of metrics : logging metrics (those logged to W&B),
+# and checkpoint metric (metric used to store checkpoints on.)
+# Logging metrics can be of 3 types - label metrics (where the prediction is a label), 
+# score metrics (where the prediction is a probability score (or softmax vector)), and
+# mask metrics (where the prediction is a semantic segmentation mask), 
+# Yet to add support for bbox_metrics.
     logging_metrics:
         label_metrics: [accuracy_score, confusion_matrix, f1_score,
                         precision_score, recall_score]
