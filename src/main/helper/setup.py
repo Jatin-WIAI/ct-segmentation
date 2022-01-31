@@ -149,7 +149,7 @@ def initialise_objs(cfg, device, phase):
     print("Initializing the model...")
     tick = time.time()
     model_class = getattr(models_module, cfg["model"]["name"])
-    model = model_class(**cfg["model_params"]).to(device)
+    model = model_class(**cfg["model"]["params"]).to(device)
     print("> Time to initialize model : {:.4f} sec".format(time.time() - tick))
 
     # Create criterion object
