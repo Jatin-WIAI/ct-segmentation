@@ -84,6 +84,11 @@ inference:
         mode : binary
     use_amp: True
 
+wandb:
+    name: null
+    project: lung-ct
+    entity: sansiddhjain
+
 eval:
     logging_metrics: 
         label_metrics: [accuracy_score, confusion_matrix, f1_score,
