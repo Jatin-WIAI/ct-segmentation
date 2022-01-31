@@ -141,17 +141,8 @@ def init_wandb(cfg, args, root_dir, model, phase):
     wandb.watch(model)
 
 
-def log_to_wandb(
-    figures_dict,
-    phase,
-    train_metrics=None,
-    train_loss=None,
-    val_metrics=None,
-    val_loss=None,
-    test_metrics=None,
-    test_loss=None,
-    epochID=0,
-):
+def log_to_wandb(figures_dict, phase, train_metrics=None, train_loss=None, val_metrics=None, val_loss=None, 
+                 test_metrics=None, test_loss=None, epochID=0):
     if phase not in ["train", "inference"]:
         raise Exception("Invalid phase! Please choose one of ['train', 'inference']")
     new_fig_dict = convert_to_wandb_images(figures_dict)
@@ -216,16 +207,20 @@ def evaluate(gt, preds, metric_type, cfg, phase):
     return return_dict
 
 
-def calculate_metrics(cfg, gt_labels, pred_scores, pred_labels, phase, dataloader):
+def calculate_metrics(cfg, gt_dict, pred_dict, phase, dataloader):
     metrics_dict = {}
-    if (
-        cfg["task_type"] == "binary-classification"
-        or cfg["task_type"] == "multiclass-classification"
-    ):
+    if (cfg["task_type"] == "binary-classification"
+        or cfg["task_type"] == "multiclass-classification"):
+        gt_labels = gt_dict['gt_labels']
+        pred_labels = pred_dict['pred_labels']
+        pred_scores = pred_dict['pred_scores']
         # TODO: Make scores implementation compatible for multiple classes
         metrics_dict.update(evaluate(gt_labels, pred_scores, "score", cfg, phase))
         metrics_dict.update(evaluate(gt_labels, pred_labels, "label", cfg, phase))
     elif cfg["task_type"] == "multilabel-classification":
+        gt_labels = gt_dict['gt_labels']
+        pred_labels = pred_dict['pred_labels']
+        pred_scores = pred_dict['pred_scores']
         name_to_code_mapping = dataloader.dataset.name_to_feature_code_mapping
         code_to_name_mapping = {v: k for k, v in name_to_code_mapping.items()}
         df_dict = {}
@@ -246,6 +241,12 @@ def calculate_metrics(cfg, gt_labels, pred_scores, pred_labels, phase, dataloade
         metrics_dict.update(
             {phase + "_summary_table": wandb.Table(dataframe=metrics_df)}
         )
+    elif cfg["task_type"] == "semantic-segmentation":
+        gt_masks = gt_dict['gt_masks']
+        pred_masks = pred_dict['pred_masks']
+        metrics_dict.update(
+            evaluate(gt_labels, pred_scores, "score", cfg, phase))
+
     else:
         raise ValueError(
             "Support for given task_type is not yet present in the metrics module."
@@ -255,17 +256,8 @@ def calculate_metrics(cfg, gt_labels, pred_scores, pred_labels, phase, dataloade
     return metrics_dict
 
 
-def create_figures(
-    cfg,
-    phase,
-    train_gt_labels=None,
-    train_scores=None,
-    val_gt_labels=None,
-    val_scores=None,
-    test_gt_labels=None,
-    test_scores=None,
-    labels_dict=None,
-):
+def create_figures(cfg, phase, train_gt_labels=None, train_scores=None, val_gt_labels=None, val_scores=None, 
+                   test_gt_labels=None, test_scores=None, labels_dict=None):
     """
     Plot figures to be logged to wandb.
 
@@ -380,10 +372,8 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
 
     losses = []
     batch_times = []
-    gt_labels = []
-    pred_scores = []
-    pred_labels = []
-    image_paths = []
+    gt_masks = []
+    pred_masks = []
     symbol = "#"
     width = 40
     total = len(dataloader)
@@ -417,15 +407,9 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
 
         losses.append(loss.item())
         batch_times.append(batch_time)
-        # Append GT Labels and Pred Scores
-        gt_labels += list(labels.cpu().float().numpy())
-        if phase == "train":
-            scores = torch.sigmoid(output).detach().cpu().numpy()
-        else:
-            scores = torch.sigmoid(output).cpu().numpy()
-        pred_scores += scores.tolist()
-
-        pred_labels += (scores > 0.5).astype(float).tolist()
+        # Append GT Masks and Pred Masks
+        gt_masks += masks
+        pred_masks += output
 
         if phase == "train":
             # Setting grad=0 using another method instead of optimizer.zero_grad()
@@ -441,17 +425,20 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
                 optimizer.step()
         tick = time.time()
 
-        image_paths.extend(image_path)
 
     average_loss = np.mean(losses)
     average_time = np.mean(batch_times)
-    gt_labels = np.array(gt_labels)
-    pred_scores = np.array(pred_scores)
-    pred_labels = np.array(pred_labels)
+    gt_masks = torch.cat(gt_masks, 0)
+    pred_masks = torch.cat(pred_masks, 0)
 
-    metrics_dict = calculate_metrics(
-        cfg, gt_labels, pred_scores, pred_labels, phase, dataloader
-    )
+    gt_dict = {
+        'gt_masks': gt_masks
+    }
+    pred_dict = {
+        'pred_masks': pred_masks
+    }
+
+    metrics_dict = calculate_metrics(cfg, gt_dict, pred_dict, phase, dataloader)
 
     bar = "[" + symbol * width + "]"
     print(
@@ -460,12 +447,10 @@ def epoch(cfg, model, dataloader, criterion, optimizer, device, phase, scaler):
         )
     )
 
-    return average_loss, metrics_dict, gt_labels, pred_scores, pred_labels, image_paths
+    return average_loss, metrics_dict, gt_masks, pred_masks
 
 
-def save_model_checkpoints(
-    cfg, phase, metrics, ckpt_metric, ckpt_dir, model, optimizer, epochID
-):
+def save_model_checkpoints(cfg, phase, metrics, ckpt_metric, ckpt_dir, model, optimizer, epochID):
     state_dict = {
         "epoch": epochID,
         "model_state_dict": model.state_dict(),
