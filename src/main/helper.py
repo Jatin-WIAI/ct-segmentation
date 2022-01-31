@@ -1,3 +1,4 @@
+import copy
 import os
 import pickle
 import random
@@ -6,15 +7,14 @@ from warnings import warn
 
 import numpy as np
 import pandas as pd
+import src.models as models_module
+import src.utils.losses as losses_module
+import src.utils.metrics as metrics_module
+import src.utils.schedulers as schedulers_module
+import src.viz.eval as viz_eval_module
 import torch
 import wandb
 import yaml
-
-import src.models as models_module
-import src.utils.metrics as metrics_module
-import src.utils.losses as losses_module
-import src.utils.schedulers as schedulers_module
-import src.viz.eval as viz_eval_module
 from natsort import natsorted
 from src.data.datasets.main import create_dataloader
 
@@ -115,31 +115,29 @@ def load_checkpoints(cfg, args, model, optimizer, checkpoint_id="last"):
 def init_wandb(cfg, args, root_dir, model, phase):
     # Create Wandb run name
     if phase == "inference":
-        wandb_run = "{}_{}_{}".format(cfg["model"]["name"], args.config_name, phase)
+        run_name = "{}_{}_{}_{}".format(cfg["data"]["dataset"], cfg["model"]["name"],
+                                         args.config_name, phase)
     else:
         if args.run:
-            wandb_run = args.run
+            run_name = args.run
         else:
-            wandb_run = "{}_{}_{}".format(cfg["model"]["name"], args.config_name, phase)
+            run_name = "{}_{}_{}_{}".format(cfg["data"]["dataset"], cfg["model"]["name"],
+                                             args.config_name, phase)
     # Initialize
+    wandb_args = copy.deepcopy(cfg['wandb'])
+    if wandb_args['name'] is None:
+        wandb_args['name'] = run_name
+    wandb_args.update({
+        'config': cfg,
+        'dir': root_dir,
+        'settings': wandb.Settings(start_method="fork"),
+    })
     if phase == "train":
-        wandb.init(
-            name=wandb_run,
-            project="TB_Ultrasound",
-            config=cfg,
-            dir=root_dir,
-            resume=args.resume,
-            id=args.id,
-            settings=wandb.Settings(start_method="fork"),
-        )
-    else:
-        wandb.init(
-            name=wandb_run,
-            project="TB_Ultrasound",
-            config=cfg,
-            dir=root_dir,
-            settings=wandb.Settings(start_method="fork"),
-        )
+        wandb_args.update({
+            'resume': args.resume,
+            'id': args.id,
+        })
+    wandb.init(**wandb_args)
     wandb.watch(model)
 
 
