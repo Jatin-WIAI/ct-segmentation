@@ -18,25 +18,15 @@ import sys
 import time
 from pprint import pprint
 
-import numpy as np
 import torch
 
 sys.path.append('../../')
 
 import src.utils.constants as constants
-from src.main.helper import (
-    create_figures,
-    epoch,
-    get_dataloader,
-    init_wandb,
-    initialise_objs,
-    load_checkpoints,
-    log_to_wandb,
-    read_config,
-    save_model_checkpoints,
-    setup_checkpoint_dir,
-    setup_misc_params,
-)
+from src.main.helper import (create_figures, epoch, get_dataloader, init_wandb,
+                             initialise_objs, load_checkpoints, log_to_wandb,
+                             read_config, save_model_checkpoints,
+                             setup_checkpoint_dir, setup_misc_params)
 
 sys.path.append("../../")
 
@@ -86,21 +76,11 @@ def main(args):
     # VAL EPOCH
     val_start_time = time.time()
     val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
-        cfg,
-        model,
-        val_dataloader,
-        criterion,
-        None,
-        device,
-        phase="inference",
-        scaler=scaler,
-    )
+        cfg, model, val_dataloader, criterion, None, device, phase="inference", scaler=scaler)
     val_end_time = time.time()
-    print(
-        "> Time to run full val epoch : {:.4f} sec".format(
-            val_end_time - val_start_time
-        )
-    )
+    print("> Time to run full val epoch : {:.4f} sec".format(
+        val_end_time - val_start_time))
+    
     log_start_time = time.time()
     if args.wandb:
         log_to_wandb(
@@ -111,53 +91,22 @@ def main(args):
     # Run training
     for epochID in range(start_epoch, start_epoch + cfg["train"]["num_epochs"]):
         print("-" * 50)
-        print(
-            "Training for epoch {}/{}".format(epochID + 1, cfg["train"]["num_epochs"])
-        )
+        print("Training for epoch {}/{}".format(epochID + 1, cfg["train"]["num_epochs"]))
 
         # TRAIN EPOCH
         start_time = time.time()
-        (
-            train_loss,
-            train_metrics,
-            train_gt_labels,
-            train_scores,
-            train_pred_labels,
-            _,
-        ) = epoch(
-            cfg,
-            model,
-            train_dataloader,
-            criterion,
-            optimizer,
-            device,
-            phase="train",
-            scaler=scaler,
-        )
+        (train_loss, train_metrics, train_gt_labels, train_scores, train_pred_labels, _) = epoch(
+            cfg, model, train_dataloader, criterion, optimizer, device, phase="train", scaler=scaler)
         train_end_time = time.time()
-        print(
-            "> Time to run full train epoch : {:.4f} sec".format(
-                train_end_time - start_time
-            )
-        )
+        print("> Time to run full train epoch : {:.4f} sec".format(
+            train_end_time - start_time))
 
         # VAL EPOCH
         val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
-            cfg,
-            model,
-            val_dataloader,
-            criterion,
-            None,
-            device,
-            phase="inference",
-            scaler=scaler,
-        )
+            cfg, model, val_dataloader, criterion, None, device, phase="inference", scaler=scaler)
         val_end_time = time.time()
-        print(
-            "> Time to run full val epoch : {:.4f} sec".format(
-                val_end_time - train_end_time
-            )
-        )
+        print("> Time to run full val epoch : {:.4f} sec".format(
+            val_end_time - train_end_time))
         print("> Time to run full epoch : {:.4f} sec".format(val_end_time - start_time))
 
         scheduler.step()
@@ -172,28 +121,13 @@ def main(args):
         pprint(train_metrics)
         pprint(val_metrics)
         if args.wandb:
-            log_to_wandb(
-                figures_dict,
-                "train",
-                train_metrics,
-                train_loss,
-                val_metrics,
-                val_loss,
-                epochID=epochID + 1,
-            )
+            log_to_wandb(figures_dict, "train", train_metrics, train_loss, val_metrics, 
+                         val_loss, epochID=epochID + 1,)
         print("> Time to log to W&B : {:.4f} sec".format(time.time() - start_time))
 
         # SAVE CHECKPOINTS
-        save_model_checkpoints(
-            cfg,
-            "inference",
-            val_metrics,
-            ckpt_metric,
-            ckpt_dir,
-            model,
-            optimizer,
-            epochID + 1,
-        )
+        save_model_checkpoints(cfg, "inference", val_metrics, ckpt_metric, 
+                               ckpt_dir, model, optimizer, epochID + 1,)
 
     print("Training Completed!")
 
