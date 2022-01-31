@@ -1,6 +1,6 @@
 # Weight decay with random augmentation
 
-checkpoints_dir: /scratche/users/sansiddh/LIDC_IDRI/checkpoints
+checkpoints_dir: /scratche/users/sansiddh/LIDC-IDRI/checkpoints
 split_version: v3
 num_classes: 2
 seed: 0
@@ -8,16 +8,18 @@ cudnn_deterministic : True
 cudnn_benchmark : False
 disable_debug_apis: True
 
+task_type: semantic-segmentation
+
 model: 
     name: Unet
-model_params:
-    encoder_name: resnet50
-    encoder_weights: imagenet
-    in_channels: 3
-    classes: 2
+    params:
+        encoder_name: resnet50
+        encoder_weights: imagenet
+        in_channels: 3
+        classes: 1
 
 data:
-    dataset: LIDC_IDRI
+    dataset: LIDC-IDRI
     dataset_params:
         split_version: null
         sample : null
@@ -57,34 +59,40 @@ data:
             format: coco
             min_area: 1024
             min_visibility: 0.1
-            label_fields: [class_labels]  
+            label_fields: [class_labels] 
 
 train:
     loss: DiceLoss
     loss_params:
-        mode : multiclass
-        classes: 5
+        mode : binary
+        # classes: 1
     optimizer: Adam
     optimizer_params:
         lr : 1.0e-4
         # weight_decay : 1.0e-4
         # momentum: 0.9
+    lr_scheduler: StepLR
+    lr_scheduler_params:
+        step_size: 5
+        gamma: 0.5
+        verbose: True
     use_amp: True
     num_epochs : 50
-    
-augmentations:
-    main_augs:
-        RandomHorizontalFlip: {}
-        PhotometricDistort: {}
-        RandomAddMultiply: {}
-        RandomBlur: {}
-        RandomNoise: {}
-    misc_augs:
-        {}
+    resume_checkpoint: 1
+
+inference:
+    loss: DiceLoss
+    loss_params:
+        mode : binary
+    use_amp: True
+
+wandb:
+    name: null
+    project: lung-ct
+    entity: sansiddhjain
 
 eval:
     logging_metrics: 
-        label_metrics: [accuracy_score, confusion_matrix, f1_score,
-                      precision_score, recall_score]
-        score_metrics: [roc_auc_score, average_precision_score]
+        mask_metrics: [accuracy_score, confusion_matrix, f1_score,
+                       precision_score, recall_score]
     ckpt_metric: roc_auc_score
