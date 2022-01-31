@@ -117,9 +117,7 @@ def create_figures(cfg, phase, train_gt_labels=None, train_scores=None, val_gt_l
             labels_arr = ["Train", "Val"]
             plot_thres_for_idx = [1]
         elif cfg["task_type"] == "multilabel-classification":
-            y_true_arr, y_pred_proba_arr, labels_arr, plot_thres_for_idx = [
-                [] for i in range(4)
-            ]
+            y_true_arr, y_pred_proba_arr, labels_arr, plot_thres_for_idx = [[] for _ in range(4)]
             for i in range(train_gt_labels.shape[1]):
                 y_true_arr.append(train_gt_labels[:, i])
                 y_pred_proba_arr.append(train_scores[:, i])
@@ -132,9 +130,7 @@ def create_figures(cfg, phase, train_gt_labels=None, train_scores=None, val_gt_l
             labels_arr = ["Test"]
             plot_thres_for_idx = [0]
         elif cfg["task_type"] == "multilabel-classification":
-            y_true_arr, y_pred_proba_arr, labels_arr, plot_thres_for_idx = [
-                [] for i in range(4)
-            ]
+            y_true_arr, y_pred_proba_arr, labels_arr, plot_thres_for_idx = [[] for i in range(4)]
             for i in range(test_gt_labels.shape[1]):
                 y_true_arr.append(test_gt_labels[:, i])
                 y_pred_proba_arr.append(test_scores[:, i])
@@ -143,21 +139,11 @@ def create_figures(cfg, phase, train_gt_labels=None, train_scores=None, val_gt_l
     for func in cfg["viz"]["eval"]:
         if func == "plot_pr_curve":
             fig, _ = getattr(viz_eval_module, func)(
-                y_true_arr,
-                y_pred_proba_arr,
-                labels_arr,
-                plot_thres_for_idx=plot_thres_for_idx,
-                pos_label=1,
-                plot_prevalance_for_idx=plot_thres_for_idx,
-            )
+                y_true_arr, y_pred_proba_arr, labels_arr, plot_thres_for_idx=plot_thres_for_idx, 
+                pos_label=1, plot_prevalance_for_idx=plot_thres_for_idx)
         else:
-            fig, _ = getattr(viz_eval_module, func)(
-                y_true_arr,
-                y_pred_proba_arr,
-                labels_arr,
-                plot_thres_for_idx=plot_thres_for_idx,
-                pos_label=1,
-            )
+            fig, _ = getattr(viz_eval_module, func)(y_true_arr, y_pred_proba_arr, labels_arr, 
+                plot_thres_for_idx=plot_thres_for_idx, pos_label=1)
         figures_dict[func] = fig
 
     return figures_dict
