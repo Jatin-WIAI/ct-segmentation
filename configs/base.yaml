@@ -1,8 +1,6 @@
 # Weight decay with random augmentation
 
 checkpoints_dir: /scratche/users/sansiddh/LIDC-IDRI/checkpoints
-split_version: v3
-num_classes: 2
 seed: 0
 cudnn_deterministic : True
 cudnn_benchmark : False
