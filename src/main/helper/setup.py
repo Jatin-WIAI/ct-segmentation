@@ -8,6 +8,7 @@ from warnings import warn
 import numpy as np
 import src.models as models_module
 import src.utils.losses as losses_module
+import src.utils.optimizers as optimizers_module
 import src.utils.schedulers as schedulers_module
 import torch
 import wandb
@@ -163,7 +164,7 @@ def initialise_objs(cfg, device, phase):
 
     if phase == "train":
         # Create optimiser object
-        optimizer_class = getattr(torch.optim, cfg[phase]["optimizer"])
+        optimizer_class = getattr(optimizers_module, cfg[phase]["optimizer"])
         optimizer = optimizer_class(
             model.parameters(), **cfg[phase]["optimizer_params"]
         )

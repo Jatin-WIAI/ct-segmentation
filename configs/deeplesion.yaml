@@ -91,6 +91,10 @@ wandb:
 
 eval:
     logging_metrics: 
-        mask_metrics: [accuracy_score, confusion_matrix, f1_score,
-                       precision_score, recall_score]
+        mask_metrics:
+            params:
+                mode: binary
+                threshold: 0.5
+                reduction: micro-imagewise
+            metrics_list: [f1_score, iou_score, accuracy, precision, recall, specificity]
     ckpt_metric: roc_auc_score

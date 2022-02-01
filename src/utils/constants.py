@@ -6,5 +6,3 @@ from os.path import dirname, join, realpath
 REPO_PATH = dirname(dirname(dirname(realpath(__file__))))
 
 CONFIG_DIR = join(REPO_PATH, "configs")
-
-DATA_ROOT_DIR = "/scratche/users/sansiddh/abdomenCT-1k/"

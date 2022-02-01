@@ -1,3 +1,6 @@
+"""All loss functions. Currently support losses from monai, torch and smp.
+"""
+
 from monai.losses import (ContrastiveLoss, DiceCELoss, DiceFocalLoss,
                           GeneralizedDiceLoss, GeneralizedWassersteinDiceLoss,
                           MaskedDiceLoss)
