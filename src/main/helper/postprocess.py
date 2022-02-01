@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import src.utils.metrics as metrics_module
+from src.utils.metrics import smp_metrics
 import src.viz.eval as viz_eval_module
 import torch
 import wandb
@@ -26,6 +27,7 @@ def log_to_wandb(figures_dict, phase, train_metrics=None, train_loss=None, val_m
     return None
 
 def evaluate(gt, preds, metric_type, cfg, phase):
+    """ Support only for classification metrics in this function. """
     return_dict = {}
     for metric in cfg["eval"]["logging_metrics"]["{}_metrics".format(metric_type)]:
         callable_metric = getattr(metrics_module, metric)
@@ -69,10 +71,21 @@ def calculate_metrics(cfg, gt_dict, pred_dict, phase, dataloader):
             {phase + "_summary_table": wandb.Table(dataframe=metrics_df)}
         )
     elif cfg["task_type"] == "semantic-segmentation":
+        # Support for only mask point metrics for now. Will add support for mask metrics later.
         gt_masks = gt_dict['gt_masks']
         pred_masks = pred_dict['pred_masks']
-        metrics_dict.update(
-            evaluate(gt_labels, pred_scores, "score", cfg, phase))
+
+        mode = metrics_dict['mask_metrics']['params']['mode']
+        threshold = metrics_dict['mask_metrics']['params']['threshold']
+        tp, fp, fn, tn = smp_metrics.get_stats(pred_masks, gt_masks, 
+                                               mode=mode, threshold=threshold)
+        metrics_dict = cfg["eval"]["logging_metrics"]
+        for metric in metrics_dict['mask_metrics']['metrics_list']:
+            func = getattr(smp_metrics, metric)
+
+            reduction = metrics_dict['mask_metrics']['params']['reduction']
+            value = func(tp, fp, fn, tn, reduction=reduction)
+            metrics_dict.update({metric: value})
 
     else:
         raise ValueError(
