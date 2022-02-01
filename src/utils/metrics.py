@@ -10,7 +10,7 @@ from sklearn.metrics import (accuracy_score, average_precision_score,
                              plot_det_curve, precision_recall_curve,
                              precision_score, recall_score, roc_auc_score)
 
-from segmentation_models_pytorch.metrics import get_stats
+import segmentation_models_pytorch.metrics as smp_metrics
 
 def precision_at_90recall(gt_labels, pred_scores):
     p, r, _ = precision_recall_curve(gt_labels, pred_scores[:, 1])
