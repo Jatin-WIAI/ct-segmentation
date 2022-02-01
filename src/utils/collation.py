@@ -1,3 +1,6 @@
+"""List of supported custom collation functions for Pytorch dataloaders
+"""
+
 import numpy as np
 import torch
 
