@@ -2,7 +2,7 @@ import time
 
 import src.data.datasets as datasets_module
 from src.data.processing.augmentations import Augmentations
-from src.utils.misc import collate_fn_obj_detection, collate_fn_semantic_seg
+from src.utils.collation import collate_fn_obj_detection, collate_fn_semantic_seg
 from torch.utils.data import DataLoader
 
 
