@@ -13,8 +13,9 @@ def log_to_wandb(figures_dict, phase, train_metrics=None, train_loss=None, val_m
     if phase not in ["train", "inference"]:
         raise Exception(
             "Invalid phase! Please choose one of ['train', 'inference']")
-    new_fig_dict = convert_to_wandb_images(figures_dict)
-    wandb.log(new_fig_dict, step=epochID)
+    if figures_dict is not None:
+        new_fig_dict = convert_to_wandb_images(figures_dict)
+        wandb.log(new_fig_dict, step=epochID)
     if phase == "train":
         wandb.log(train_metrics, step=epochID)
         wandb.log(val_metrics, step=epochID)
