@@ -75,8 +75,16 @@ def main(args):
     # Run and log one validation epoch before beginning training
     # VAL EPOCH
     val_start_time = time.time()
-    val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
+    val_loss, val_metrics, val_gt_dict, val_pred_dict = epoch(
         cfg, model, val_dataloader, criterion, None, device, phase="inference", scaler=scaler)
+    if "classification" in cfg['task_type']:
+        val_gt_labels = val_gt_dict['gt_labels']
+        val_pred_scores = val_pred_dict['pred_scores']
+        val_pred_labels = val_pred_dict['pred_labels']
+    elif cfg['task_type'] == "semantic-segmentation":
+        val_gt_masks = val_gt_dict['gt_masks']
+        val_pred_masks = val_pred_dict['pred_masks']
+
     val_end_time = time.time()
     print("> Time to run full val epoch : {:.4f} sec".format(
         val_end_time - val_start_time))
@@ -95,16 +103,31 @@ def main(args):
 
         # TRAIN EPOCH
         start_time = time.time()
-        (train_loss, train_metrics, train_gt_labels, train_scores, train_pred_labels, _) = epoch(
+        train_loss, train_metrics, train_gt_dict, train_pred_dict = epoch(
             cfg, model, train_dataloader, criterion, optimizer, device, phase="train", scaler=scaler)
+        if "classification" in cfg['task_type']:
+            train_gt_labels = train_gt_dict['gt_labels']
+            train_pred_scores = train_pred_dict['pred_scores']
+            train_pred_labels = train_pred_dict['pred_labels']
+        elif cfg['task_type'] == "semantic-segmentation":
+            train_gt_masks = train_gt_dict['gt_masks']
+            train_pred_masks = train_pred_dict['pred_masks']
+            val_end_time = time.time()
         train_end_time = time.time()
         print("> Time to run full train epoch : {:.4f} sec".format(
             train_end_time - start_time))
 
         # VAL EPOCH
-        val_loss, val_metrics, val_gt_labels, val_scores, val_pred_labels, _ = epoch(
+        val_loss, val_metrics, val_gt_dict, val_pred_dict = epoch(
             cfg, model, val_dataloader, criterion, None, device, phase="inference", scaler=scaler)
-        val_end_time = time.time()
+        if "classification" in cfg['task_type']:
+            val_gt_labels = val_gt_dict['gt_labels']
+            val_pred_scores = val_pred_dict['pred_scores']
+            val_pred_labels = val_pred_dict['pred_labels']
+        elif cfg['task_type'] == "semantic-segmentation":
+            val_gt_masks = val_gt_dict['gt_masks']
+            val_pred_masks = val_pred_dict['pred_masks']
+            val_end_time = time.time()
         print("> Time to run full val epoch : {:.4f} sec".format(
             val_end_time - train_end_time))
         print("> Time to run full epoch : {:.4f} sec".format(val_end_time - start_time))
@@ -112,11 +135,13 @@ def main(args):
         scheduler.step()
 
         # LOGGING AND PLOTTING
-        labels_dict = train_dataloader.dataset.name_to_feature_code_mapping
-        labels_dict = {v: k for k, v in labels_dict.items()}
-        figures_dict = create_figures(cfg, "train", train_gt_labels, train_scores, 
-                                      val_gt_labels, val_scores, labels_dict=labels_dict)
-
+        if "classification" in cfg['task_type']:
+            labels_dict = train_dataloader.dataset.name_to_feature_code_mapping
+            labels_dict = {v: k for k, v in labels_dict.items()}
+            figures_dict = create_figures(cfg, "train", train_gt_labels, train_pred_scores, 
+                                            val_gt_labels, val_pred_scores, labels_dict=labels_dict)
+        else:
+            figures_dict = None
         start_time = time.time()
         pprint(train_metrics)
         pprint(val_metrics)
